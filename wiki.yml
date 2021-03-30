@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+  namespace: wiki-js
+type: Opaque
+stringData:
+  password: admin123
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wikijs
+  namespace: wiki-js
+spec:
+  type: ClusterIP
+  selector:
+    app: wikijs
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+---
+apiVersion: v1
+data:
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_USER: "postgresadmin"
+  DB_TYPE: "postgres"
+  DB_NAME: "postgresdb"
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: wiki-js
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: wikijs
+  name: wikijs
+  namespace: wiki-js
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wikijs
+  template:
+    metadata:
+      labels:
+        app: wikijs
+    spec:
+      containers:
+        - name: wikijs
+          image: requarks/wiki:latest
+          env:
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                key: DB_HOST
+                name: postgres-config
+          - name: DB_PORT
+            valueFrom:
+              configMapKeyRef:
+                key: DB_PORT
+                name: postgres-config
+          - name: DB_USER
+            valueFrom:
+              configMapKeyRef:
+                key: DB_USER
+                name: postgres-config
+          - name: DB_TYPE
+            valueFrom:
+              configMapKeyRef:
+                key: DB_TYPE
+                name: postgres-config  
+          - name: DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                key: DB_NAME
+                name: postgres-config  
+          - name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: postgres 
+                key: password 
+          ports:
+          - containerPort: 3000
+            protocol: TCP
